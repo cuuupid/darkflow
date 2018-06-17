@@ -47,3 +47,4 @@ ckpt/*
 
 *.data*
 
+*.json
