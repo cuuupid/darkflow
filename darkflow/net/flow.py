@@ -105,7 +105,7 @@ def return_predict(self, im, json=False):
         tmpBox = self.framework.process_box(box, h, w, threshold)
         if tmpBox is None:
             continue
-        if json:
+        if False:
             boxesInfo.append({
                 "label": tmpBox[4],
                 "confidence": tmpBox[6],
@@ -117,6 +117,7 @@ def return_predict(self, im, json=False):
                     "y": tmpBox[3]}
             })
         else:
+            # label confidence x1 y1 x2 y2
             boxesInfo.append(f'{tmpBox[4]} {tmpBox[6]} {tmpBox[0]} {tmpBox[2]} {tmpBox[1]} {tmpBox[3]}')
     return boxesInfo
 
