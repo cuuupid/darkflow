@@ -18,8 +18,9 @@ with open(JSON_FILE) as f:
 images = glob.glob(f'{IMAGE_DIR}/*.jpg')
 print(f'Found {len(images)} images.')
 
-classes = list(set(str(key) for d in data for key in d["Label"].keys()))
-classes.remove('START')
+classes = list(set(str(key) for d in data if type(d["Label"]) == dict for key in d["Label"].keys()))
+start = 'START' in classes
+if start: classes.remove('START')
 print(f'Found {len(classes)} classes.')
 
 def convert_bbox(bbox, width, height, offset_x=0, offset_y=0):
@@ -43,13 +44,18 @@ for image in images:
     # Next we look up the image in the JSON data
     annotation = [d for d in data if image.split(' ')[0] in d["Labeled Data"]][0]
     with open(f'{IMAGE_DIR}/{image[:image.rfind(".")]}.txt', 'w') as label:
-        startbox = annotation["Label"]["START"][0]
-        offset_x, offset_y = startbox["x"], startbox["y"]
-        for bbox in annotation["Label"].keys():
-            if bbox == "START": continue
-            x, y, w, h = convert_bbox(annotation["Label"][bbox][0], width, height, offset_x, offset_y)
-            label.write(f'{classes.index(bbox)} {x} {y} {w} {h}\n')
-    print(f'{image}: {len(annotation["Label"].keys())} annotations')
+        if start:
+            startbox = annotation["Label"]["START"][0]
+            offset_x, offset_y = startbox["x"], startbox["y"]
+        else: offset_x, offset_y = 0, height
+        if type(annotation["Label"]) != dict:
+            continue
+        for bboxset in annotation["Label"].keys():
+            if bboxset == "START": continue
+            for bbox in annotation["Label"][bboxset]:
+                x, y, w, h = convert_bbox(bbox, width, height, offset_x, offset_y)
+                label.write(f'{classes.index(bboxset)} {x} {y} {w} {h}\n')
+    print(f'{image}: {sum([len(annotation["Label"][k]) for k in annotation["Label"].keys()])} annotations')
 
 with open(f'{IMAGE_DIR}/train.txt', 'w') as image_paths:
     for image in images:

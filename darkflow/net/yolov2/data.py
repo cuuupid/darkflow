@@ -25,7 +25,6 @@ def _batch(self, chunk):
     allobj = deepcopy(allobj_)
     path = os.path.join(self.FLAGS.dataset, jpg)
     img = self.preprocess(path, allobj)
-
     # Calculate regression target
     cellx = 1. * w / W
     celly = 1. * h / H

@@ -46,3 +46,7 @@ ckpt/*
 .cache/
 
 *.data*
+
+*.jpg
+*.json
+*.txt

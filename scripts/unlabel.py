@@ -34,5 +34,5 @@ for image, label in labelled:
             y1 = int(y - h/2)
             y2 = int(y + h/2)
             print(f'{classes[a][:-1]} : ({x1},{y1}) , ({x2},{y2})')
-            cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), colors[a], 50)
+            cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), colors[a], 5)
     cv2.imwrite(f'''{image.split('.jpg')[0]}_unlabelled.jpg''', img)

@@ -18,11 +18,12 @@ with open(JSON_FILE) as f:
 images = glob.glob(f'{IMAGE_DIR}/*.jpg')
 print(f'Found {len(images)} images.')
 
-classes = list(set(str(key) for d in data for key in d["Label"].keys()))
-classes.remove('START')
+classes = list(set(str(key) for d in data if type(d["Label"]) == dict for key in d["Label"].keys()))
+start = 'START' in classes
+if start: classes.remove('START')
 print(f'Found {len(classes)} classes.')
 
-#         filename, width, height, x1 x2 y1 y2, class
+#         filename, width, height, class, x1, y1, x2, y2
 
 def convert_bbox(bbox, width, height, offset_x=0, offset_y=0):
     xmin = min([coord["x"] for coord in bbox])
@@ -31,10 +32,10 @@ def convert_bbox(bbox, width, height, offset_x=0, offset_y=0):
     ymax = max([coord["y"] for coord in bbox])
     xmin -= offset_x
     xmax -= offset_x
-    ymin = max(offset_y - ymin, 0)
-    ymax = max(offset_y - ymax, 0)
-    new_width, new_height = 512, 1024
-    if height < width: new_width, new_height = new_height, new_width
+    ymin = max(height - ymin, 0)
+    ymax = max(height - ymax, 0)
+    new_width, new_height = 832, 624
+    if height > width: new_width, new_height = new_height, new_width
     xmin = xmin/width*new_width
     xmax = xmax/width*new_width
     ymin = ymin/height*new_height
@@ -49,15 +50,21 @@ for image in images:
     width, height = img.size[:2]
     width, height = int(width), int(height)
     # Next we look up the image in the JSON data
-    annotation = [d for d in data if image.split(' ')[0] in d["Labeled Data"]][0]
+    annotation = [d for d in data if image.split(' ')[0].replace('_(1).jpg', ' (1).jpg') in d["Labeled Data"]][0]
     with open(f'{IMAGE_DIR}/{image[:image.rfind(".")]}.txt', 'w') as label:
-        startbox = annotation["Label"]["START"][0]
-        offset_x, offset_y = startbox["x"], startbox["y"]
-        for bbox in annotation["Label"].keys():
-            if bbox == "START": continue
-            x1, x2, y1, y2, nw, nh = convert_bbox(annotation["Label"][bbox][0], width, height, offset_x, offset_y)
-            label.write(f'{image} {nw} {nh} {bbox} {x1} {y1} {x2} {y2}\n')
-    print(f'{image}: {len(annotation["Label"].keys())} annotations')
+        if start:
+            startbox = annotation["Label"]["START"][0]
+            offset_x, offset_y = startbox["x"], startbox["y"]
+        else:
+            offset_x, offset_y = (0, height)
+        if type(annotation["Label"]) != dict:
+            continue
+        for bboxset in annotation["Label"].keys():
+            if bboxset == "START": continue
+            for bbox in annotation["Label"][bboxset]:
+                x1, x2, y1, y2, nw, nh = convert_bbox(bbox, width, height, offset_x, offset_y)
+                label.write(f'{image} {nw} {nh} {bboxset.replace(" ", "")} {x1} {y1} {x2} {y2}\n')
+    print(f'{image}: {sum([len(annotation["Label"][k]) for k in annotation["Label"].keys()])} annotations')
 
 with open(f'{IMAGE_DIR}/train.txt', 'w') as image_paths:
     for image in images:
@@ -65,7 +72,7 @@ with open(f'{IMAGE_DIR}/train.txt', 'w') as image_paths:
 
 with open(f'{IMAGE_DIR}/custom.names', 'w') as names:
     for classname in classes:
-        names.write(f'{classname}\n')
+        names.write(f'{classname.replace(" ","")}\n')
 
 with open(f'{IMAGE_DIR}/custom.cfg', 'w') as config:
     config.write(f'classes={len(classes)}\n')
